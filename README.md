@@ -6,7 +6,7 @@ Use Windsurf/Cognition models in [Pi](https://github.com/earendil-works/pi) — 
 
 Runs a local proxy at `127.0.0.1:42100` that speaks standard OpenAI Chat Completions API. Translates requests to Windsurf's proprietary Connect-RPC wire format. Pi talks to the proxy via `api: "openai-completions"` — no custom streaming code needed.
 
-**No Windsurf IDE needed.** Cloud-direct mode talks straight to Cognition's servers over HTTPS. No Windsurf installation, no background processes.
+**No Windsurf IDE needed.** Cloud-direct mode talks straight to Cognition's servers over HTTPS. No Windsurf installation, no background processes. The local proxy adds negligible overhead — ~15MB memory, sub-millisecond latency.
 
 ```
 Pi → proxy (localhost:42100) → Cognition Cloud
@@ -14,7 +14,13 @@ Pi → proxy (localhost:42100) → Cognition Cloud
 
 ## Install
 
-**Option A — Git install (recommended):**
+**Option A — npm (recommended):**
+
+```bash
+pi install npm:pi-windsurf
+```
+
+**Option B — Git:**
 
 ```bash
 pi install git:github.com/ktappdev/pi-windsurf
