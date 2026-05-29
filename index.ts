@@ -135,7 +135,7 @@ export default async function (pi: ExtensionAPI) {
       try {
         const catalog = await getCachedCatalog(c.apiKey, c.apiServerUrl);
         if (catalog) {
-          ctx.ui.notify(`Windsurf: refreshed ${catalog.byUid.size} models. Restart Pi to apply.", "info");
+          ctx.ui.notify(`Windsurf: refreshed ${catalog.byUid.size} models. Restart Pi to apply.`, "info");
         } else {
           ctx.ui.notify("Windsurf: refresh failed. Check connection.", "warning");
         }
