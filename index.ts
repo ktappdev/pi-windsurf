@@ -11,7 +11,7 @@ import { startProxy, stopProxy, PROXY_SECRET, setProxyCredentials } from "./prox
 import { loadCredentials, saveCredentials, deleteCredentials, DEFAULT_REGION, runLoginLoopback, registerUser, type PersistedCredentials } from "./oauth";
 import { clearCachedUserJwt } from "./auth";
 import { clearSessionIds } from "./chat";
-import { clearCachedCatalog } from "./catalog";
+import { clearCachedCatalog, getCachedCatalog } from "./catalog";
 
 let _pi: ExtensionAPI | null = null;
 
@@ -120,6 +120,28 @@ export default async function (pi: ExtensionAPI) {
       setProxyCredentials(null);
       clearCachedUserJwt(); clearSessionIds(); clearCachedCatalog();
       ctx.ui.notify(ok ? "Windsurf: signed out." : "Already signed out.", "info");
+    },
+  });
+
+  pi.registerCommand("windsurf-refresh", {
+    description: "Refresh Windsurf model catalog",
+    handler: async (_args, ctx) => {
+      const c = loadCredentials();
+      if (!c) {
+        ctx.ui.notify("Windsurf: not signed in. /login windsurf", "warning");
+        return;
+      }
+      clearCachedCatalog();
+      try {
+        const catalog = await getCachedCatalog(c.apiKey, c.apiServerUrl);
+        if (catalog) {
+          ctx.ui.notify(`Windsurf: refreshed ${catalog.byUid.size} models. Restart Pi to apply.", "info");
+        } else {
+          ctx.ui.notify("Windsurf: refresh failed. Check connection.", "warning");
+        }
+      } catch (e) {
+        ctx.ui.notify(`Windsurf: refresh error - ${e instanceof Error ? e.message : String(e)}`, "error");
+      }
     },
   });
 
