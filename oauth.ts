@@ -116,7 +116,11 @@ export async function registerUser(
 const CREDS_FILENAME = "credentials.json";
 
 export function getCredentialsDir(): string {
-  return path.join(os.homedir(), ".pi", "agent", "windsurf");
+  const agentDir =
+    process.env.PI_CODING_AGENT_DIR ||
+    path.join(os.homedir(), ".pi", "agent");
+
+  return path.join(agentDir, "windsurf");
 }
 
 export function getCredentialsPath(): string {

@@ -75,6 +75,11 @@ provider login state alongside the extension's credentials in
 file does not complete Pi's `/login` process. Run `/login windsurf` on the server
 to complete both.
 
+If `PI_CODING_AGENT_DIR` is set, the extension uses
+`windsurf/credentials.json` inside that directory instead. Workers inherit the
+credential location through the same environment variable; existing credentials
+in that directory can be used without another login.
+
 Existing credentials at `~/.config/opencode-windsurf-auth/credentials.json` are
 automatically migrated when the new file is missing. The original stays in place
 until `/windsurf-logout`, which removes credentials from both locations. The new
