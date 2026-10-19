@@ -163,19 +163,15 @@ interface CallbackResult { token: string; state: string; }
 
 export async function runLoginManual(
   region: WindsurfRegion,
-  onUrl: (url: string) => void,
   prompt: (message: string) => Promise<string>,
 ): Promise<string> {
   const state = crypto.randomUUID();
   const callbackUrl = "http://127.0.0.1:42101/auth";
   const loginUrl = buildLoginUrl(region, callbackUrl, "fragment", state);
-  onUrl(loginUrl);
-
   const pasted = (await prompt(
-    `Open this link in a browser on your own computer:\n\n${loginUrl}\n\n` +
-    "Sign in, then copy the full final URL from the address bar back here. " +
-    "A localhost connection error is expected; no SSH tunnel is needed. " +
-    "You can also paste the sign-in token directly.\n\nCallback URL or token:",
+    `Open on your own computer:\n${loginUrl}\n\n` +
+    "After sign-in, a localhost error is expected.\n" +
+    "Paste the full final URL or token below, then press Enter:",
   )).trim();
   if (!pasted) throw new Error("No token received.");
 

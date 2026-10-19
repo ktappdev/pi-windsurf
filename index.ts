@@ -99,13 +99,13 @@ async function loginWindsurf(callbacks: OAuthLoginCallbacks): Promise<OAuthCrede
   const onUrl = (url: string) => callbacks.onAuth({ url });
   const prompt = (message: string) => callbacks.onPrompt({ message });
   if (process.env.WINDSURF_HEADLESS === "1") {
-    token = await runLoginManual(DEFAULT_REGION, onUrl, prompt);
+    token = await runLoginManual(DEFAULT_REGION, prompt);
   } else {
     try {
       token = await runLoginLoopback(DEFAULT_REGION, onUrl, callbacks.signal);
     } catch {
       if (callbacks.signal?.aborted) throw new Error("Sign-in cancelled.");
-      token = await runLoginManual(DEFAULT_REGION, onUrl, prompt);
+      token = await runLoginManual(DEFAULT_REGION, prompt);
     }
   }
   if (!token) throw new Error("No token received.");
