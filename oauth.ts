@@ -113,11 +113,10 @@ export async function registerUser(
 // Credential Storage
 // ----------------------------------------------------------------------------
 
-const APP_DIR_NAME = "opencode-windsurf-auth";
 const CREDS_FILENAME = "credentials.json";
 
 export function getCredentialsDir(): string {
-  return path.join(os.homedir(), ".config", APP_DIR_NAME);
+  return path.join(os.homedir(), ".pi", "agent", "windsurf");
 }
 
 export function getCredentialsPath(): string {
@@ -127,11 +126,14 @@ export function getCredentialsPath(): string {
 function ensureDir(): void {
   const dir = getCredentialsDir();
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  fs.chmodSync(dir, 0o700);
 }
 
-export function loadCredentials(): PersistedCredentials | null {
-  const p = getCredentialsPath();
-  if (!fs.existsSync(p)) return null;
+function getLegacyCredentialsPath(): string {
+  return path.join(os.homedir(), ".config", "opencode-windsurf-auth", CREDS_FILENAME);
+}
+
+function readCredentials(p: string): PersistedCredentials {
   const raw = fs.readFileSync(p, "utf8");
   const parsed = JSON.parse(raw) as Record<string, unknown>;
   if (typeof parsed.apiKey !== "string" || !parsed.apiKey ||
@@ -142,17 +144,42 @@ export function loadCredentials(): PersistedCredentials | null {
   return parsed as unknown as PersistedCredentials;
 }
 
+export function loadCredentials(): PersistedCredentials | null {
+  const currentPath = getCredentialsPath();
+  if (fs.existsSync(currentPath)) return readCredentials(currentPath);
+  const legacyPath = getLegacyCredentialsPath();
+  if (!fs.existsSync(legacyPath)) return null;
+  const creds = readCredentials(legacyPath);
+  saveCredentials(creds);
+  return creds;
+}
+
 export function saveCredentials(creds: PersistedCredentials): void {
   ensureDir();
   const p = getCredentialsPath();
-  fs.writeFileSync(p, JSON.stringify(creds, null, 2), { mode: 0o600 });
+  const temporaryPath = path.join(getCredentialsDir(), `.credentials-${crypto.randomUUID()}.tmp`);
+  try {
+    fs.writeFileSync(temporaryPath, JSON.stringify(creds, null, 2), { mode: 0o600, flag: "wx" });
+    fs.renameSync(temporaryPath, p);
+  } finally {
+    fs.rmSync(temporaryPath, { force: true });
+  }
 }
 
 export function deleteCredentials(): boolean {
-  const p = getCredentialsPath();
-  if (!fs.existsSync(p)) return false;
-  fs.unlinkSync(p);
-  return true;
+  let deleted = false;
+  let failure: unknown;
+  for (const p of [getCredentialsPath(), getLegacyCredentialsPath()]) {
+    try {
+      fs.unlinkSync(p);
+      deleted = true;
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") continue;
+      failure ??= error;
+    }
+  }
+  if (failure) throw failure;
+  return deleted;
 }
 
 // ----------------------------------------------------------------------------

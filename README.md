@@ -71,9 +71,14 @@ come from the current sign-in attempt.
 
 Once signed in, credentials are saved for subsequent sessions. Pi keeps its own
 provider login state alongside the extension's credentials in
-`~/.config/opencode-windsurf-auth/credentials.json`; copying only that extension
+`~/.pi/agent/windsurf/credentials.json`; copying only that extension
 file does not complete Pi's `/login` process. Run `/login windsurf` on the server
 to complete both.
+
+Existing credentials at `~/.config/opencode-windsurf-auth/credentials.json` are
+automatically migrated when the new file is missing. The original stays in place
+until `/windsurf-logout`, which removes credentials from both locations. The new
+folder is private (`0700`) and credential files are written privately (`0600`).
 
 ### 2. Pick a model
 
