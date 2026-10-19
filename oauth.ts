@@ -161,6 +161,43 @@ export function deleteCredentials(): boolean {
 
 interface CallbackResult { token: string; state: string; }
 
+export async function runLoginManual(
+  region: WindsurfRegion,
+  onUrl: (url: string) => void,
+  prompt: (message: string) => Promise<string>,
+): Promise<string> {
+  const state = crypto.randomUUID();
+  const callbackUrl = "http://127.0.0.1:42101/auth";
+  const loginUrl = buildLoginUrl(region, callbackUrl, "fragment", state);
+  onUrl(loginUrl);
+
+  const pasted = (await prompt(
+    `Open this link in a browser on your own computer:\n\n${loginUrl}\n\n` +
+    "Sign in, then copy the full final URL from the address bar back here. " +
+    "A localhost connection error is expected; no SSH tunnel is needed. " +
+    "You can also paste the sign-in token directly.\n\nCallback URL or token:",
+  )).trim();
+  if (!pasted) throw new Error("No token received.");
+
+  let url: URL;
+  try {
+    url = new URL(pasted);
+  } catch {
+    return pasted;
+  }
+
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  const params = [url.searchParams, fragment];
+  const callbackParams = params.find(p =>
+    p.has("firebase_id_token") || p.has("access_token") || p.has("token"),
+  );
+  const token = callbackParams?.get("firebase_id_token") ?? callbackParams?.get("access_token") ?? callbackParams?.get("token");
+  if (!token) throw new Error("No sign-in token in the pasted URL. Copy the full URL after signing in, including its query or fragment.");
+  const callbackState = url.searchParams.get("state") ?? fragment.get("state");
+  if (callbackState !== state) throw new Error("Sign-in state does not match. Use the link from this sign-in attempt.");
+  return token;
+}
+
 export async function runLoginLoopback(
   region: WindsurfRegion,
   onUrl: (url: string) => void,
@@ -174,14 +211,15 @@ export async function runLoginLoopback(
   const callbackPromise = server.callback(state);
   callbackPromise.catch(() => {});
 
-  onUrl(loginUrl);
-  await openBrowser(loginUrl).catch(() => {});
-
-  const callback = await waitWithTimeout(callbackPromise, 5 * 60 * 1000, signal, "Sign-in timed out.");
-
-  if (!callback.token) throw new Error("OAuth callback delivered an empty token.");
-  server.close();
-  return callback.token;
+  try {
+    onUrl(loginUrl);
+    await openBrowser(loginUrl).catch(() => {});
+    const callback = await waitWithTimeout(callbackPromise, 5 * 60 * 1000, signal, "Sign-in timed out.");
+    if (!callback.token) throw new Error("OAuth callback delivered an empty token.");
+    return callback.token;
+  } finally {
+    server.close();
+  }
 }
 
 function buildLoginUrl(region: WindsurfRegion, redirectUri: string, redirectParametersType: "query" | "fragment", state: string): string {

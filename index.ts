@@ -8,7 +8,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { OAuthCredentials, OAuthLoginCallbacks } from "@earendil-works/pi-ai";
 import { startProxy, stopProxy, PROXY_SECRET, setProxyCredentials } from "./proxy";
-import { loadCredentials, saveCredentials, deleteCredentials, DEFAULT_REGION, runLoginLoopback, registerUser, type PersistedCredentials } from "./oauth";
+import { loadCredentials, saveCredentials, deleteCredentials, DEFAULT_REGION, runLoginLoopback, runLoginManual, registerUser } from "./oauth";
 import { clearCachedUserJwt } from "./auth";
 import { clearSessionIds } from "./chat";
 import { clearCachedCatalog, getCachedCatalog } from "./catalog";
@@ -96,21 +96,22 @@ function registerWindsurfProvider(pi: ExtensionAPI, baseUrl: string, catalog: Aw
 // OAuth
 async function loginWindsurf(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
   let token: string;
-  try {
-    token = await runLoginLoopback(DEFAULT_REGION, (url) => callbacks.onAuth({ url }));
-  } catch {
-    const pasted = await callbacks.onPrompt({
-      message: `Open this URL, sign in, paste callback URL or token:\n\n  ${DEFAULT_REGION.website}/windsurf/signin\n\nPaste:`,
-    });
-    const trimmed = pasted.trim();
+  const onUrl = (url: string) => callbacks.onAuth({ url });
+  const prompt = (message: string) => callbacks.onPrompt({ message });
+  if (process.env.WINDSURF_HEADLESS === "1") {
+    token = await runLoginManual(DEFAULT_REGION, onUrl, prompt);
+  } else {
     try {
-      const u = new URL(trimmed);
-      token = u.searchParams.get("firebase_id_token") ?? u.searchParams.get("access_token") ?? u.searchParams.get("token") ?? trimmed;
-    } catch { token = trimmed; }
+      token = await runLoginLoopback(DEFAULT_REGION, onUrl, callbacks.signal);
+    } catch {
+      if (callbacks.signal?.aborted) throw new Error("Sign-in cancelled.");
+      token = await runLoginManual(DEFAULT_REGION, onUrl, prompt);
+    }
   }
   if (!token) throw new Error("No token received.");
 
-  const result = await registerUser(token, DEFAULT_REGION);
+  callbacks.signal?.throwIfAborted();
+  const result = await registerUser(token, DEFAULT_REGION, callbacks.signal);
   saveCredentials({ ...result, issuedAt: new Date().toISOString(), oauthClientId: DEFAULT_REGION.oauthClientId });
   setProxyCredentials({ apiKey: result.apiKey, apiServerUrl: result.apiServerUrl });
   clearCachedUserJwt();

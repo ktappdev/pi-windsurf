@@ -49,6 +49,37 @@ pi -e ~/developer/pi-windsurf/index.ts
 
 Browser opens to windsurf.com. Sign in with your Windsurf account. Token captured automatically.
 
+#### Headless server / SSH
+
+Start Pi on the server with manual sign-in enabled:
+
+```bash
+WINDSURF_HEADLESS=1 pi
+```
+
+For a local checkout, load the extension explicitly:
+
+```bash
+WINDSURF_HEADLESS=1 pi -e ./index.ts
+```
+
+Run `/login windsurf` in Pi. Open the displayed link in a browser on your own
+computer and sign in. The browser redirects to `127.0.0.1:42101/auth` and may show
+a connection error; this is expected. Copy the **full final URL** from the address
+bar, including everything after `#` or `?`, and paste it into Pi's prompt on the
+server. A raw sign-in token is also accepted.
+
+Headless mode does not open a browser or start a callback listener. No monitor,
+SSH port forwarding, or exposed server port is needed. Treat the callback URL
+like a password and paste it only into your own login prompt. Callback URLs must
+come from the current sign-in attempt.
+
+Once signed in, credentials are saved for subsequent sessions. Pi keeps its own
+provider login state alongside the extension's credentials in
+`~/.config/opencode-windsurf-auth/credentials.json`; copying only that extension
+file does not complete Pi's `/login` process. Run `/login windsurf` on the server
+to complete both.
+
 ### 2. Pick a model
 
 ```
