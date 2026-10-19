@@ -47,23 +47,18 @@ pi -e ~/developer/pi-windsurf/index.ts
 /login windsurf
 ```
 
-Browser opens to windsurf.com. Sign in with your Windsurf account. Token captured automatically.
+Choose how to sign in:
+
+- **Open browser here** — sign in with your Windsurf account; the token is captured automatically.
+- **Sign in on another computer (headless / SSH)** — open the link on your own
+  computer, then paste the callback URL into Pi on the server.
+
+Pi asks each time you run `/login windsurf`; no environment variable is needed.
 
 #### Headless server / SSH
 
-Start Pi on the server with manual sign-in enabled:
-
-```bash
-WINDSURF_HEADLESS=1 pi
-```
-
-For a local checkout, load the extension explicitly:
-
-```bash
-WINDSURF_HEADLESS=1 pi -e ./index.ts
-```
-
-Run `/login windsurf` in Pi. Open the displayed link in a browser on your own
+Start Pi normally, run `/login windsurf`, and choose **Sign in on another computer
+(headless / SSH)**. Open the displayed link in a browser on your own
 computer and sign in. The browser redirects to `127.0.0.1:42101/auth` and may show
 a connection error; this is expected. Copy the **full final URL** from the address
 bar, including everything after `#` or `?`, and paste it into Pi's prompt on the

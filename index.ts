@@ -95,10 +95,18 @@ function registerWindsurfProvider(pi: ExtensionAPI, baseUrl: string, catalog: Aw
 
 // OAuth
 async function loginWindsurf(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
+  const mode = await callbacks.onSelect({
+    message: "How would you like to sign in to Windsurf?",
+    options: [
+      { id: "browser", label: "Open browser here" },
+      { id: "headless", label: "Sign in on another computer (headless / SSH)" },
+    ],
+  });
+  if (!mode) throw new Error("Sign-in cancelled.");
   let token: string;
   const onUrl = (url: string) => callbacks.onAuth({ url });
   const prompt = (message: string) => callbacks.onPrompt({ message });
-  if (process.env.WINDSURF_HEADLESS === "1") {
+  if (mode === "headless") {
     token = await runLoginManual(DEFAULT_REGION, prompt);
   } else {
     try {
